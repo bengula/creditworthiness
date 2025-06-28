@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Kenyan Loan Eligibility Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background-color: #1e40af;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-secondary {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        .btn-secondary:hover {
+            background-color: #c7d2fe;
+        }
+         .btn:disabled {
+            background-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .input-group {
+            position: relative;
+        }
+        .input-group span {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .input-field {
+            padding-left: 3.5rem;
+            width: 100%;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+        .results-card {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 2px solid #93c5fd;
+        }
+        .ai-content {
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #c7d2fe;
+            border-bottom-color: #4f46e5;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #payslipPreview {
+            max-height: 200px;
+            width: 100%;
+            object-fit: contain;
+            border-radius: 0.5rem;
+            border: 2px dashed #d1d5db;
+            margin-top: 1rem;
+        }
+        #file-upload-label {
+            border: 2px dashed #9ca3af;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+        }
+        #file-upload-label:hover {
+            border-color: #4f46e5;
+            background-color: #f0f2ff;
+        }
+    </style>
+</head>
+<body class="p-4 bg-gray-100">
+
+    <div class="max-w-6xl w-full mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">AI-Powered Loan Eligibility Calculator</h1>
+            <p class="text-gray-600 mt-2">Upload a payslip or enter details manually to assess creditworthiness.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Column: Input Methods -->
+            <div class="space-y-8">
+                <!-- AI Uploader Card -->
+                <div class="card p-6 md:p-8">
+                     <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
+                        <i data-lucide="scan-line" class="mr-3 text-indigo-600"></i>
+                        AI Payslip Reader
+                    </h2>
+                    <p class="text-sm text-gray-500 mb-4">Upload a clear image of the payslip.</p>
+
+                    <input type="file" id="payslipUploader" class="hidden" accept="image/*">
+                    <label for="payslipUploader" id="file-upload-label" class="flex flex-col items-center justify-center">
+                         <i data-lucide="upload-cloud" class="w-10 h-10 text-gray-400"></i>
+                         <span>Click to select an image</span>
+                    </label>
+
+                    <img id="payslipPreview" class="hidden"/>
+                    <div id="ai-status" class="text-center text-sm text-gray-600 mt-2"></div>
+                    
+                    <button id="analyzePayslipBtn" class="btn btn-primary w-full mt-4" disabled>
+                        <span class="loader hidden"></span>
+                        <span>Analyze Payslip with AI</span>
+                    </button>
+                </div>
+                
+                <div class="relative flex items-center">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="flex-shrink mx-4 text-gray-500 font-semibold">OR</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+
+                <!-- Manual Input Card -->
+                <div class="card p-6 md:p-8">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-6 flex items-center">
+                        <i data-lucide="keyboard" class="mr-3 text-blue-700"></i>
+                        Enter Details Manually
+                    </h2>
+
+                    <form id="calculatorForm" class="space-y-6">
+                        <div>
+                            <label for="basicPay" class="block text-sm font-medium text-gray-700 mb-1">Basic Pay</label>
+                            <div class="input-group">
+                                <span>KSh</span>
+                                <input type="number" id="basicPay" class="input-field" placeholder="e.g., 55000" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="netPay" class="block text-sm font-medium text-gray-700 mb-1">Net Pay (Take Home)</label>
+                            <div class="input-group">
+                                <span>KSh</span>
+                                <input type="number" id="netPay" class="input-field" placeholder="e.g., 42000" required>
+                            </div>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="submit" class="btn btn-primary w-full">
+                                <i data-lucide="calculator"></i>
+                                Calculate Credit Worthiness
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="space-y-8">
+                <div id="results" class="card p-6 md:p-8 results-card sticky top-8 hidden">
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
+                        <i data-lucide="line-chart" class="mr-3 text-green-700"></i>
+                        Eligibility Results
+                    </h2>
+                    <div class="space-y-2 text-gray-800">
+                         <div>
+                            <p class="text-sm text-green-800 font-semibold">Estimated Credit Worthiness</p>
+                            <p id="creditWorthinessResult" class="text-3xl font-bold text-green-600">KSh 0.00</p>
+                        </div>
+                         <p class="text-xs text-gray-500 italic">Based on the formula: Net Pay - (Basic Pay / 3)</p>
+                    </div>
+                    
+                    <div id="aiTools" class="mt-6 pt-6 border-t border-blue-300 space-y-3">
+                        <button id="analyzeHealthBtn" class="btn btn-secondary w-full">
+                            <span class="loader hidden"></span>
+                            <span>✨ Analyze Financial Health</span>
+                        </button>
+                         <button id="suggestLoansBtn" class="btn btn-secondary w-full">
+                            <span class="loader hidden"></span>
+                            <span>✨ Suggest Loan Scenarios</span>
+                        </button>
+                         <button id="draftEmailBtn" class="btn btn-secondary w-full">
+                             <span class="loader hidden"></span>
+                            <span>✨ Draft Applicant Email</span>
+                        </button>
+                    </div>
+                    <div id="aiAnalysisSection" class="hidden mt-4"></div>
+                </div>
+                 <div class="card p-6 bg-amber-50 border border-amber-200 sticky top-8">
+                     <h3 class="font-semibold text-amber-800 flex items-center mb-2">
+                        <i data-lucide="alert-triangle" class="mr-2"></i>
+                        Important Disclaimer
+                     </h3>
+                     <p class="text-sm text-amber-700">
+                        This tool and its AI-generated content are estimates for informational purposes only. Lenders must verify all applicant information. The AI analysis may not be 100% accurate.
+                     </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Email Draft -->
+    <div id="emailModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 class="text-xl font-semibold mb-4">Generated Email Draft</h2>
+            <textarea id="emailContent" class="w-full h-64 p-2 border rounded-md"></textarea>
+            <div class="mt-4 flex justify-end gap-3">
+                 <button id="copyEmailBtn" class="btn btn-secondary"><i data-lucide="copy"></i>Copy Text</button>
+                 <button id="closeModalBtn" class="btn btn-primary bg-gray-600 hover:bg-gray-700">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        lucide.createIcons();
+
+        // --- Element References ---
+        const calculatorForm = document.getElementById('calculatorForm');
+        const basicPayInput = document.getElementById('basicPay');
+        const netPayInput = document.getElementById('netPay');
+        const resultsDiv = document.getElementById('results');
+        const creditWorthinessResultEl = document.getElementById('creditWorthinessResult');
+        
+        const aiToolsDiv = document.getElementById('aiTools');
+        const aiButtons = {
+            analyzeHealth: document.getElementById('analyzeHealthBtn'),
+            suggestLoans: document.getElementById('suggestLoansBtn'),
+            draftEmail: document.getElementById('draftEmailBtn')
+        };
+        const aiAnalysisSection = document.getElementById('aiAnalysisSection');
+
+        const payslipUploader = document.getElementById('payslipUploader');
+        const payslipPreview = document.getElementById('payslipPreview');
+        const analyzePayslipBtn = document.getElementById('analyzePayslipBtn');
+        const aiStatus = document.getElementById('ai-status');
+
+        const emailModal = document.getElementById('emailModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const emailContentEl = document.getElementById('emailContent');
+        const copyEmailBtn = document.getElementById('copyEmailBtn');
+
+        // --- State ---
+        let state = { basicPay: 0, netPay: 0, creditWorthiness: 0 };
+        let currentFile = null;
+
+        // --- Gemini API Function ---
+        async function callGemini(prompt, base64ImageData = null) {
+            const apiKey = ""; // Handled by environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            let parts = [{ text: prompt }];
+            if (base64ImageData) {
+                parts.push({
+                    inlineData: {
+                        mimeType: currentFile ? currentFile.type : 'image/jpeg',
+                        data: base64ImageData
+                    }
+                });
+            }
+
+            const payload = { contents: [{ role: "user", parts: parts }] };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
+                    return result.candidates[0].content.parts[0].text;
+                }
+                return "Sorry, the AI could not generate a response.";
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                return `An error occurred while contacting the AI service: ${error.message}`;
+            }
+        }
+
+        // --- UI Helper Functions ---
+        function setButtonLoading(button, isLoading) {
+            const loader = button.querySelector('.loader');
+            const text = button.querySelector('span:not(.loader)');
+            button.disabled = isLoading;
+            loader.classList.toggle('hidden', !isLoading);
+            text.classList.toggle('hidden', isLoading);
+        }
+
+        function displayAiResult(content) {
+            const formattedContent = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-indigo-800">$1</strong>')
+                .replace(/\*/g, '<br>• ')
+                .replace(/\n/g, '<br>');
+            aiAnalysisSection.innerHTML = `<div class="ai-content text-gray-700">${formattedContent}</div>`;
+            aiAnalysisSection.classList.remove('hidden');
+        }
+
+        function runCalculation() {
+            state.basicPay = parseFloat(basicPayInput.value) || 0;
+            state.netPay = parseFloat(netPayInput.value) || 0;
+
+            if (state.basicPay <= 0 || state.netPay <= 0) {
+                creditWorthinessResultEl.textContent = "Invalid Input";
+                creditWorthinessResultEl.classList.add('text-red-600');
+                resultsDiv.classList.remove('hidden');
+                aiToolsDiv.classList.add('hidden');
+                return;
+            }
+
+            state.creditWorthiness = state.netPay - (state.basicPay / 3);
+            creditWorthinessResultEl.textContent = `KSh ${state.creditWorthiness.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            
+            if (state.creditWorthiness > 0) {
+                 creditWorthinessResultEl.classList.remove('text-red-600');
+                 creditWorthinessResultEl.classList.add('text-green-600');
+                 aiButtons.suggestLoans.disabled = false;
+            } else {
+                 creditWorthinessResultEl.classList.remove('text-green-600');
+                 creditWorthinessResultEl.classList.add('text-red-600');
+                 aiButtons.suggestLoans.disabled = true;
+            }
+            
+            aiAnalysisSection.classList.add('hidden');
+            resultsDiv.classList.remove('hidden');
+            aiToolsDiv.classList.remove('hidden');
+        }
+
+        // --- Event Listeners ---
+        payslipUploader.addEventListener('change', (e) => {
+            currentFile = e.target.files[0];
+            if (currentFile && currentFile.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    payslipPreview.src = event.target.result;
+                    payslipPreview.classList.remove('hidden');
+                    analyzePayslipBtn.disabled = false;
+                    aiStatus.textContent = "Image ready to be analyzed.";
+                };
+                reader.readAsDataURL(currentFile);
+            } else {
+                currentFile = null;
+                payslipPreview.classList.add('hidden');
+                analyzePayslipBtn.disabled = true;
+                aiStatus.textContent = "Please select a valid image file.";
+            }
+        });
+
+        analyzePayslipBtn.addEventListener('click', async () => {
+            if (!payslipPreview.src) return;
+
+            setButtonLoading(analyzePayslipBtn, true);
+            aiStatus.textContent = "AI is analyzing the payslip... please wait.";
+            const base64ImageData = payslipPreview.src.split(',')[1];
+            
+            const prompt = `Analyze this image of a Kenyan payslip. Extract the 'Basic Salary' (or 'Basic Salary') and 'NET PAY'. Return ONLY a valid JSON object with two keys: "basicPay" and "netPay", with numeric values (no commas). Example: {"basicPay": 55286, "netPay": 18794.35}. If a value cannot be found, use 0.`;
+
+            const result = await callGemini(prompt, base64ImageData);
+            
+            try {
+                // The API might return the JSON string inside markdown backticks
+                const cleanResult = result.replace(/```json\n?|\n?```/g, '').trim();
+                const parsedJson = JSON.parse(cleanResult);
+                
+                if (parsedJson.basicPay && parsedJson.netPay) {
+                    basicPayInput.value = parsedJson.basicPay;
+                    netPayInput.value = parsedJson.netPay;
+                    aiStatus.textContent = "Successfully extracted data! Calculating...";
+                    runCalculation(); // Automatically calculate
+                } else {
+                    throw new Error("Could not find required fields in the image.");
+                }
+            } catch (error) {
+                console.error("Error parsing AI response:", error);
+                aiStatus.textContent = "Could not read data from payslip. Please ensure the image is clear or enter manually.";
+            }
+            
+            setButtonLoading(analyzePayslipBtn, false);
+        });
+
+        calculatorForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            runCalculation();
+        });
+
+        aiButtons.analyzeHealth.addEventListener('click', async () => {
+            setButtonLoading(aiButtons.analyzeHealth, true);
+            aiAnalysisSection.classList.add('hidden');
+            const prompt = `An applicant in Kenya has a basic pay of ${state.basicPay.toLocaleString()} KSh and a net pay of ${state.netPay.toLocaleString()} KSh. Their calculated monthly loan affordability is ${state.creditWorthiness.toLocaleString()} KSh. Provide a one-paragraph summary of their financial health from a lender's perspective. Mention if their affordability is strong, moderate, or low.`;
+            const result = await callGemini(prompt);
+            displayAiResult(result);
+            setButtonLoading(aiButtons.analyzeHealth, false);
+        });
+
+        aiButtons.suggestLoans.addEventListener('click', async () => {
+            setButtonLoading(aiButtons.suggestLoans, true);
+            aiAnalysisSection.classList.add('hidden');
+            const prompt = `A loan applicant in Kenya can afford a monthly payment of ${state.creditWorthiness.toLocaleString()} KSh. Suggest 2-3 different types of loan products they might qualify for (e.g., personal loan, asset finance). For each product, suggest a realistic loan amount and repayment period that would fit within their monthly affordability. Present this as a simple bulleted list. Assume current interest rates are around 18% p.a.`;
+            const result = await callGemini(prompt);
+            displayAiResult(result);
+            setButtonLoading(aiButtons.suggestLoans, false);
+        });
+        
+        aiButtons.draftEmail.addEventListener('click', async () => {
+            setButtonLoading(aiButtons.draftEmail, true);
+            let prompt = (state.creditWorthiness > 0)
+                ? `Draft a polite, pre-approval email to a loan applicant. Their estimated monthly loan affordability is ${state.creditWorthiness.toLocaleString()} KSh. Mention this as the potential monthly installment they can handle. State that the next steps involve providing official documents for verification (payslip, bank statements, National ID). Sign off as "The Lending Team".`
+                : `Draft a polite email to a loan applicant explaining that they do not qualify for a loan at this time. Their basic pay is ${state.basicPay.toLocaleString()} KSh and their net pay is ${state.netPay.toLocaleString()} KSh. Do not state the negative number. Explain that their disposable income does not meet the required threshold. Suggest they re-apply if their financial situation improves. Sign off as "The Lending Team".`;
+            const result = await callGemini(prompt);
+            emailContentEl.value = result;
+            emailModal.classList.remove('hidden');
+            setButtonLoading(aiButtons.draftEmail, false);
+        });
+
+        // --- Modal Logic ---
+        closeModalBtn.addEventListener('click', () => emailModal.classList.add('hidden'));
+        copyEmailBtn.addEventListener('click', () => {
+            emailContentEl.select();
+            try {
+                document.execCommand('copy');
+                copyEmailBtn.innerHTML = '<i data-lucide="check"></i>Copied!';
+                setTimeout(() => {
+                   copyEmailBtn.innerHTML = '<i data-lucide="copy"></i>Copy Text';
+                   lucide.createIcons();
+                }, 2000);
+            } catch (err) { console.error('Failed to copy text: ', err); }
+             lucide.createIcons();
+        });
+
+    </script>
+</body>
+</html>
